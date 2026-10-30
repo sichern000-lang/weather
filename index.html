@@ -3,45 +3,360 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>날씨</title>
+  <title>날씨 3D</title>
   <style>
-    body { font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #f2f6fa; }
-    main { background: #fff; padding: 2rem 2.5rem; border-radius: 16px; box-shadow: 0 4px 20px #0001; min-width: 260px; }
-    h1 { margin: 0 0 1rem; font-size: 1.2rem; }
-    .temp { font-size: 3rem; font-weight: 700; }
-    dl { display: grid; grid-template-columns: auto 1fr; gap: .3rem 1rem; margin: 1rem 0 0; }
-    dt { color: #667; } dd { margin: 0; text-align: right; }
-    #msg { color: #c33; }
+    :root { --navy: #14213d; --orange: #ff8a3d; --lime: #cfe86a; --card: #f6f6f6; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif; color: var(--navy);
+      background: linear-gradient(135deg, #a9dde2 0%, #d5d8cf 55%, #f1d6c8 100%); background-attachment: fixed; }
+    .app { max-width: 1200px; margin: 24px auto; padding: 14px; background: #fff; border: 6px solid var(--navy); border-radius: 40px;
+           display: grid; grid-template-columns: 76px 1fr; gap: 20px; }
+    @media (max-width: 760px) { .app { margin: 0; border-radius: 0; border-width: 0; grid-template-columns: 1fr; } }
+
+    /* sidebar */
+    .side { background: #f6f6f6; border-radius: 28px; padding: 18px 0; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+    .side .logo { font-size: 30px; }
+    .side i { font-style: normal; font-size: 18px; opacity: .45; }
+    .side i.on { opacity: 1; color: var(--orange); }
+    .side .grow { flex: 1; }
+    @media (max-width: 760px) { .side { display: none; } }
+
+    main { display: grid; gap: 18px; min-width: 0; }
+    header { display: flex; align-items: center; gap: 14px; }
+    .hello small { display: block; font-size: 11px; opacity: .6; }
+    .hello b { font-size: 18px; }
+    .search { flex: 1; background: #f1f1f1; border-radius: 999px; padding: 12px 20px; font-size: 13px; color: #888; }
+    .dot { width: 42px; height: 42px; border-radius: 50%; background: #f1f1f1; display: grid; place-items: center; font-size: 15px; }
+    @media (max-width: 760px) { .dot { display: none; } }
+
+    .row1 { display: grid; grid-template-columns: 1fr 1.1fr; gap: 18px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1.1fr 0.9fr; gap: 18px; }
+    @media (max-width: 960px) { .row1, .row2 { grid-template-columns: 1fr; } }
+
+    .card { border-radius: 26px; padding: 22px; position: relative; overflow: hidden; }
+
+    /* hero */
+    .hero { min-height: 320px; background: linear-gradient(135deg, #b7e3e8, #e4dccd 60%, #f3d3c6); display: flex; flex-direction: column; }
+    .pill { display: inline-block; background: #fff; border-radius: 999px; padding: 8px 16px; font-size: 13px; width: fit-content; }
+    .hero h2 { font-size: 26px; font-weight: 500; margin: 26px 0 0; }
+    .hero .now { font-size: 12px; opacity: .55; }
+    .hero .big { font-size: 74px; font-weight: 600; margin-top: auto; line-height: 1; }
+    .hero .sub { font-size: 12px; opacity: .6; margin-top: 6px; }
+    .hero .icon { position: absolute; right: 26px; top: 26px; font-size: 110px; filter: drop-shadow(0 8px 14px #0002); }
+    .chips { position: absolute; right: 22px; bottom: 22px; display: flex; gap: 10px; }
+    @media (max-width: 560px) { .chips { position: static; margin-top: 14px; } .hero .icon { font-size: 80px; } .hero .big { font-size: 60px; } }
+    .chip { border-radius: 14px; padding: 10px 16px; text-align: center; background: #fff; font-size: 11px; min-width: 84px; }
+    .chip.lime { background: var(--lime); }
+    .chip b { display: block; font-size: 17px; margin-top: 3px; }
+
+    /* 3D panel (map slot) */
+    .scene { padding: 0; min-height: 320px; background: #5a8fd0; }
+    #scene { position: absolute; inset: 0; }
+    #scene canvas { display: block; width: 100%; height: 100%; }
+    .tag { position: absolute; left: 18px; bottom: 18px; background: #fff; border-radius: 14px; padding: 10px 16px; display: flex; gap: 12px; align-items: center; z-index: 1; }
+    .tag .n { font-size: 26px; font-weight: 700; }
+    .tag small { display: block; font-size: 11px; opacity: .65; }
+    .hint { position: absolute; right: 16px; top: 14px; font-size: 11px; color: #fff; opacity: .85; z-index: 1; }
+
+    /* row 2 */
+    .cities { display: grid; gap: 12px; }
+    .city { background: var(--card); border-radius: 18px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+    .city .ic { font-size: 28px; }
+    .city .nm { flex: 1; font-size: 13px; }
+    .city .nm small { display: block; opacity: .55; font-size: 11px; }
+    .city .tp { font-size: 13px; color: var(--orange); }
+    .humid { background: var(--navy); color: #fff; border-radius: 22px; padding: 18px 20px; position: relative; min-height: 120px; margin-top: 12px; }
+    .humid h3 { margin: 0; font-size: 17px; font-weight: 500; }
+    .humid p { margin: 30px 0 0; font-size: 11px; opacity: .65; line-height: 1.5; }
+    .humid .ic { position: absolute; right: 18px; top: 14px; font-size: 56px; }
+
+    .metrics h3 { margin: 0 0 14px; font-size: 18px; font-weight: 500; }
+    .cols { display: grid; grid-template-columns: repeat(4, 1fr); height: 190px; }
+    .col { border-left: 1px solid #eee; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; font-size: 11px; opacity: .9; padding-bottom: 4px; }
+    .col:first-child { border-left: 0; }
+    .col .bubble { width: 38px; height: 38px; border-radius: 50%; background: #f1f1f1; display: grid; place-items: center; font-size: 16px; margin-bottom: auto; }
+    .col:nth-child(2) .bubble { background: var(--navy); }
+    .col b { font-size: 15px; }
+    .col span { opacity: .6; }
+
+    .tomorrow { background: linear-gradient(180deg, #d8ec8b, #c3e06a); }
+    .tomorrow small { opacity: .6; font-size: 11px; }
+    .tomorrow h3 { margin: 4px 0; font-size: 20px; font-weight: 500; }
+    .tomorrow .figure { position: absolute; right: 12px; top: 56px; font-size: 90px; }
+    .tomorrow .t2 { position: absolute; left: 22px; bottom: 18px; font-size: 26px; }
+    .tomorrow .t2 small { display: block; }
+
+    #status { font-size: 12px; color: #c0392b; word-break: break-all; padding: 0 4px; }
+    #status:empty { display: none; }
   </style>
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+  </script>
 </head>
 <body>
-  <main>
-    <h1>서울 현재 날씨</h1>
-    <p id="msg">불러오는 중…</p>
-    <div id="out" hidden>
-      <div class="temp"><span id="t"></span>°C</div>
-      <dl>
-        <dt>상태</dt><dd id="pty"></dd>
-        <dt>습도</dt><dd><span id="h"></span>%</dd>
-        <dt>1시간 강수량</dt><dd id="r"></dd>
-        <dt>풍속</dt><dd><span id="w"></span> m/s</dd>
-      </dl>
-    </div>
-  </main>
-  <script>
-    const PTY = { 0: '맑음/흐림', 1: '비', 2: '비/눈', 3: '눈', 5: '빗방울', 6: '빗방울눈날림', 7: '눈날림' };
-    fetch('/api/weather')
-      .then((r) => r.json().then((d) => (r.ok ? d : Promise.reject([d.error, d.code, d.detail].filter(Boolean).join(' | ')))))
+  <div class="app">
+    <aside class="side">
+      <div class="logo">⛅</div>
+      <i class="on">▣</i><i>✉</i><i>⌖</i><i>▦</i><i>☰</i><i>⚙</i>
+      <div class="grow"></div>
+      <i>⇥</i>
+    </aside>
+
+    <main>
+      <header>
+        <div class="hello"><small>안녕하세요</small><b>기상청 실시간 날씨</b></div>
+        <div class="search">도시 검색…</div>
+        <div class="dot">▦</div><div class="dot">✉</div><div class="dot">🔔</div>
+      </header>
+
+      <div id="status"></div>
+
+      <section class="row1">
+        <div class="card hero">
+          <span class="pill">📍 서울특별시</span>
+          <h2>Weather</h2>
+          <div class="now">Now · <span id="when">--</span></div>
+          <div class="icon" id="heroIcon">⛅</div>
+          <div class="big"><span id="t">--</span>°C</div>
+          <div class="sub" id="state">불러오는 중…</div>
+          <div class="chips">
+            <div class="chip lime">풍속<b><span id="w">-</span> m/s</b></div>
+            <div class="chip">습도<b><span id="h">-</span>%</b></div>
+          </div>
+        </div>
+
+        <div class="card scene">
+          <div id="scene"></div>
+          <div class="hint">드래그로 회전 · 휠로 확대</div>
+          <div class="tag"><span class="n"><span id="t2">--</span>°C</span><small><span id="day">-</span><br><span id="state2">-</span></small></div>
+        </div>
+      </section>
+
+      <section class="row2">
+        <div>
+          <div class="cities" id="cities"></div>
+          <div class="humid">
+            <h3>Humidity</h3>
+            <div class="ic" id="humIcon">🌤️</div>
+            <p>1시간 강수량 <span id="r">-</span> mm<br>습도 <span id="h2">-</span>%</p>
+          </div>
+        </div>
+
+        <div class="card metrics" style="background:#fff;padding:6px 6px 0">
+          <h3>오늘 서울의 날씨 지표</h3>
+          <div class="cols">
+            <div class="col"><div class="bubble">🌡️</div><b><span id="m1">-</span>°</b><span>기온</span></div>
+            <div class="col"><div class="bubble">💧</div><b><span id="m2">-</span>%</b><span>습도</span></div>
+            <div class="col"><div class="bubble">🌬️</div><b><span id="m3">-</span></b><span>풍속 m/s</span></div>
+            <div class="col"><div class="bubble">🧭</div><b><span id="m4">-</span>°</b><span>풍향</span></div>
+          </div>
+        </div>
+
+        <div class="card tomorrow">
+          <small>Today</small>
+          <h3>서울</h3>
+          <div class="figure" id="figure">🌤️</div>
+          <div class="t2"><span id="t3">--</span>°C<small id="state3">-</small></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const $ = (id) => document.getElementById(id);
+    const PTY = { 0: '강수 없음', 1: '비', 2: '비/눈', 3: '눈', 5: '빗방울', 6: '빗방울눈날림', 7: '눈날림' };
+    const iconOf = (d) => ({ 1: '🌧️', 2: '🌨️', 3: '❄️', 5: '🌦️', 6: '🌨️', 7: '❄️' }[d.precipitationType]
+      ?? (d.humidity >= 80 ? '☁️' : d.temperature >= 28 ? '☀️' : '⛅'));
+    const CITIES = [
+      { name: '서울', nx: 60, ny: 127 }, { name: '부산', nx: 98, ny: 76 },
+      { name: '제주', nx: 52, ny: 38 }, { name: '대구', nx: 89, ny: 90 },
+    ];
+
+    // 날씨 상태 (API 응답으로 갱신, 실패하면 기본값으로 장면만 보여줌)
+    const state = { temperature: 15, humidity: 50, rain1h: 0, windSpeed: 2, windU: 1, windV: 0, precipitationType: 0 };
+
+    // ---------- Scene ----------
+    const host = $('scene');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 500);
+    camera.position.set(0, 9, 24);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    host.appendChild(renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 4, 0);
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.enableDamping = true;
+    controls.enableZoom = false; // 페이지 스크롤과 충돌 방지
+
+    const sun = new THREE.DirectionalLight(0xffffff, 2);
+    sun.position.set(10, 20, 8);
+    scene.add(sun, new THREE.AmbientLight(0xffffff, 0.6));
+
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(40, 64), new THREE.MeshStandardMaterial({ color: 0x4f8f5a, roughness: 1 }));
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+
+    // 온도계: 높이 = 기온 (-20 ~ 40 ℃)
+    const thermo = new THREE.Group();
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 12, 24), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 }));
+    tube.position.y = 6;
+    const mercury = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 1, 24), new THREE.MeshStandardMaterial({ color: 0xff3b30, emissive: 0x330000 }));
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), mercury.material);
+    bulb.position.y = 0.2;
+    thermo.add(tube, mercury, bulb);
+    thermo.position.set(-8, 0, 0);
+    scene.add(thermo);
+
+    // 바람 화살표: 바람이 부는 방향 (UUU 동, VVV 북 → three 좌표 x, -z)
+    const windArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(8, 6, 0), 5, 0x00d4ff, 1.4, 0.8);
+    scene.add(windArrow);
+
+    // 구름: 풍속/습도에 따라 흐르는 속도와 개수가 달라짐
+    const clouds = [];
+    const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, roughness: 1 });
+    for (let i = 0; i < 14; i++) {
+      const g = new THREE.Group();
+      for (let j = 0; j < 4; j++) {
+        const s = new THREE.Mesh(new THREE.SphereGeometry(1.2 + Math.random() * 1.2, 16, 16), cloudMat);
+        s.position.set(j * 1.4 - 2, Math.random() * 0.6, Math.random() * 1.2);
+        g.add(s);
+      }
+      g.position.set((Math.random() - 0.5) * 70, 14 + Math.random() * 5, (Math.random() - 0.5) * 40);
+      scene.add(g);
+      clouds.push(g);
+    }
+
+    // 강수 입자
+    const N = 3000;
+    const pPos = new Float32Array(N * 3);
+    const pGeo = new THREE.BufferGeometry();
+    for (let i = 0; i < N; i++) {
+      pPos[i * 3] = (Math.random() - 0.5) * 50;
+      pPos[i * 3 + 1] = Math.random() * 25;
+      pPos[i * 3 + 2] = (Math.random() - 0.5) * 50;
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({ color: 0x9ecbff, size: 0.12, transparent: true });
+    const precip = new THREE.Points(pGeo, pMat);
+    scene.add(precip);
+
+    // ---------- 상태 → 장면 반영 ----------
+    const lerpColor = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), Math.min(1, Math.max(0, t)));
+    function applyState() {
+      const s = state;
+      const tNorm = (s.temperature + 20) / 60;
+      const dim = s.precipitationType ? 0.55 : 1;
+      const sky = lerpColor(0x5a6b85, lerpColor(0x4aa3ff, 0xffa24a, (s.temperature - 20) / 20), (1 - s.humidity / 100) * 0.6 + 0.4).multiplyScalar(dim);
+      scene.background = sky;
+      scene.fog = new THREE.FogExp2(sky, 0.006 + (s.humidity / 100) * 0.02);
+      sun.intensity = 2 * dim;
+
+      const h = Math.max(0.3, tNorm * 12);
+      mercury.scale.y = h;
+      mercury.position.y = h / 2 + 0.2;
+      mercury.material.color.set(lerpColor(0x3b82f6, 0xff3b30, tNorm));
+
+      const dir = new THREE.Vector3(s.windU, 0, -s.windV);
+      const len = dir.length();
+      if (len > 0.01) windArrow.setDirection(dir.normalize());
+      windArrow.setLength(1 + Math.min(len, 15) * 0.5, 1.4, 0.8);
+
+      const snow = [2, 3, 6, 7].includes(s.precipitationType);
+      pMat.color.set(snow ? 0xffffff : 0x9ecbff);
+      pMat.size = snow ? 0.22 : 0.12;
+      precip.visible = s.precipitationType !== 0;
+
+      cloudMat.color.set(s.precipitationType ? 0x7d8794 : 0xffffff);
+      clouds.forEach((c, i) => (c.visible = i < 3 + Math.round((s.humidity / 100) * 11)));
+    }
+    applyState();
+
+    function resize() {
+      const { clientWidth: w, clientHeight: h } = host;
+      if (!w || !h) return;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    new ResizeObserver(resize).observe(host);
+    resize();
+
+    // ---------- 애니메이션 ----------
+    const clock = new THREE.Clock();
+    renderer.setAnimationLoop(() => {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const wx = state.windU, wz = -state.windV;
+      clouds.forEach((c) => {
+        c.position.x += wx * dt * 0.8;
+        c.position.z += wz * dt * 0.8;
+        if (Math.abs(c.position.x) > 40) c.position.x *= -0.95;
+        if (Math.abs(c.position.z) > 25) c.position.z *= -0.95;
+      });
+      if (precip.visible) {
+        const snow = pMat.size > 0.15;
+        const fall = snow ? 2.5 : 18;
+        const a = precip.geometry.attributes.position;
+        for (let i = 0; i < N; i++) {
+          a.array[i * 3 + 1] -= fall * dt;
+          a.array[i * 3] += wx * dt * 0.7 + (snow ? Math.sin(clock.elapsedTime + i) * dt * 0.5 : 0);
+          a.array[i * 3 + 2] += wz * dt * 0.7;
+          if (a.array[i * 3 + 1] < 0) {
+            a.array[i * 3 + 1] = 25;
+            a.array[i * 3] = (Math.random() - 0.5) * 50;
+            a.array[i * 3 + 2] = (Math.random() - 0.5) * 50;
+          }
+        }
+        a.needsUpdate = true;
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    });
+
+    // ---------- 데이터 ----------
+    const load = (c) =>
+      fetch(`/api/weather?nx=${c.nx}&ny=${c.ny}`).then((r) =>
+        r.json().then((d) => (r.ok ? d : Promise.reject([d.error, d.code, d.detail].filter(Boolean).join(' | ')))));
+
+    const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+    $('day').textContent = DAYS[new Date().getDay()] + '요일';
+
+    load(CITIES[0])
       .then((d) => {
-        t.textContent = d.temperature;
-        h.textContent = d.humidity;
-        r.textContent = d.rain1h;
-        w.textContent = d.windSpeed;
-        pty.textContent = PTY[d.precipitationType] ?? d.precipitationType;
-        msg.hidden = true;
-        out.hidden = false;
+        for (const k of Object.keys(state)) if (d[k] !== null && d[k] !== undefined) state[k] = d[k];
+        const label = PTY[d.precipitationType] ?? '-';
+        const ic = iconOf(d);
+        for (const id of ['t', 't2', 't3', 'm1']) $(id).textContent = d.temperature;
+        for (const id of ['h', 'h2', 'm2']) $(id).textContent = d.humidity;
+        for (const id of ['w', 'm3']) $(id).textContent = d.windSpeed;
+        $('m4').textContent = d.windDirection;
+        $('r').textContent = d.rain1h;
+        for (const id of ['state', 'state2', 'state3']) $(id).textContent = label;
+        for (const id of ['heroIcon', 'figure', 'humIcon']) $(id).textContent = ic;
+        $('when').textContent = `${d.baseDate.slice(4, 6)}/${d.baseDate.slice(6)} ${d.baseTime.slice(0, 2)}:00`;
+        if (!d.db?.saved) $('status').textContent = 'DB 미저장: ' + (d.db?.reason ?? '');
+        applyState();
       })
-      .catch((e) => { msg.textContent = '오류: ' + e; });
+      .catch((e) => { $('status').textContent = '오류: ' + e; $('state').textContent = '데이터 없음'; });
+
+    // 다른 도시 목록 (서울 제외)
+    CITIES.slice(1).forEach((c) => {
+      const el = document.createElement('div');
+      el.className = 'city';
+      el.innerHTML = `<span class="ic">…</span><span class="nm">${c.name}<small>불러오는 중</small></span><span class="tp"></span>`;
+      $('cities').appendChild(el);
+      load(c)
+        .then((d) => {
+          el.querySelector('.ic').textContent = iconOf(d);
+          el.querySelector('small').textContent = PTY[d.precipitationType];
+          el.querySelector('.tp').textContent = `${d.temperature}°C · ${d.humidity}%`;
+        })
+        .catch(() => { el.querySelector('.ic').textContent = '⚠️'; el.querySelector('small').textContent = '불러오기 실패'; });
+    });
   </script>
 </body>
 </html>
