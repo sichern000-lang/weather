@@ -4,8 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>날씨</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #f2f6fa; }
+    main { background: #fff; padding: 2rem 2.5rem; border-radius: 16px; box-shadow: 0 4px 20px #0001; min-width: 260px; }
+    h1 { margin: 0 0 1rem; font-size: 1.2rem; }
+    .temp { font-size: 3rem; font-weight: 700; }
+    dl { display: grid; grid-template-columns: auto 1fr; gap: .3rem 1rem; margin: 1rem 0 0; }
+    dt { color: #667; } dd { margin: 0; text-align: right; }
+    #msg { color: #c33; }
+  </style>
 </head>
 <body>
-  <h1>날씨</h1>
+  <main>
+    <h1>서울 현재 날씨</h1>
+    <p id="msg">불러오는 중…</p>
+    <div id="out" hidden>
+      <div class="temp"><span id="t"></span>°C</div>
+      <dl>
+        <dt>상태</dt><dd id="pty"></dd>
+        <dt>습도</dt><dd><span id="h"></span>%</dd>
+        <dt>1시간 강수량</dt><dd id="r"></dd>
+        <dt>풍속</dt><dd><span id="w"></span> m/s</dd>
+      </dl>
+    </div>
+  </main>
+  <script>
+    const PTY = { 0: '맑음/흐림', 1: '비', 2: '비/눈', 3: '눈', 5: '빗방울', 6: '빗방울눈날림', 7: '눈날림' };
+    fetch('/api/weather')
+      .then((r) => r.json().then((d) => (r.ok ? d : Promise.reject(d.error))))
+      .then((d) => {
+        t.textContent = d.temperature;
+        h.textContent = d.humidity;
+        r.textContent = d.rain1h;
+        w.textContent = d.windSpeed;
+        pty.textContent = PTY[d.precipitationType] ?? d.precipitationType;
+        msg.hidden = true;
+        out.hidden = false;
+      })
+      .catch((e) => { msg.textContent = '오류: ' + e; });
+  </script>
 </body>
 </html>
