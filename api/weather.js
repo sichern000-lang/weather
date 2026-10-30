@@ -36,7 +36,11 @@ export default async function handler(req, res) {
     }
     const header = json?.response?.header;
     if (header?.resultCode !== '00') {
-      return res.status(502).json({ error: header?.resultMsg ?? 'API 오류', code: header?.resultCode });
+      return res.status(502).json({
+        error: header?.resultMsg ?? 'API 오류',
+        code: header?.resultCode,
+        detail: text.slice(0, 300),
+      });
     }
     const items = json.response.body.items.item;
     const v = Object.fromEntries(items.map((i) => [i.category, i.obsrValue]));
