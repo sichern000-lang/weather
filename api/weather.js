@@ -4,7 +4,8 @@ const num = (v) => (v === undefined || v === '' ? null : Number(v));
 async function saveToSupabase(row) {
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return { saved: false, reason: 'Supabase 환경변수 없음' };
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/weather_observations?on_conflict=nx,ny,observed_at`, {
+  const base = SUPABASE_URL.trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
+  const r = await fetch(`${base}/rest/v1/weather_observations?on_conflict=nx,ny,observed_at`, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,

@@ -86,6 +86,41 @@
     .tomorrow .t2 { position: absolute; left: 22px; bottom: 18px; font-size: 26px; }
     .tomorrow .t2 small { display: block; }
 
+    /* sidebar buttons */
+    .side button { all: unset; cursor: pointer; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-size: 18px; opacity: .45; }
+    .side button:hover { opacity: .85; background: #ececec; }
+    .side button.on { opacity: 1; color: var(--orange); background: #fff; box-shadow: 0 2px 8px #0001; }
+    .side .logo { cursor: pointer; }
+    .settings { position: absolute; left: 70px; bottom: 20px; background: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: 0 8px 28px #0003; z-index: 10; font-size: 13px; min-width: 150px; }
+    .settings[hidden] { display: none; }
+    .settings b { display: block; margin-bottom: 8px; }
+    .seg { display: flex; gap: 6px; }
+    .seg button { all: unset; cursor: pointer; flex: 1; text-align: center; padding: 7px 0; border-radius: 10px; background: #f1f1f1; opacity: 1; width: auto; height: auto; font-size: 13px; }
+    .seg button.on { background: var(--navy); color: #fff; }
+    .side { position: relative; }
+
+    /* search */
+    .searchwrap { flex: 1; position: relative; }
+    .searchwrap input { width: 100%; border: 0; outline: 0; background: #f1f1f1; border-radius: 999px; padding: 12px 20px; font: inherit; font-size: 13px; color: var(--navy); }
+    .searchwrap input:focus { box-shadow: 0 0 0 2px var(--orange); }
+    .results { position: absolute; top: 48px; left: 0; right: 0; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px #0003; padding: 6px; z-index: 20; max-height: 280px; overflow: auto; }
+    .results[hidden] { display: none; }
+    .results div { padding: 9px 14px; border-radius: 10px; font-size: 13px; cursor: pointer; }
+    .results div:hover, .results div.hl { background: #f1f1f1; }
+    .results small { opacity: .5; margin-left: 8px; }
+    .city { cursor: pointer; }
+    .city:hover { background: #ececec; }
+
+    /* extra views */
+    .view[hidden] { display: none; }
+    .view h2 { margin: 4px 4px 14px; font-size: 20px; font-weight: 600; }
+    .allgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+    .allgrid .city { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .hist { background: var(--card); border-radius: 22px; padding: 18px; display: grid; gap: 8px; }
+    .hrow { display: grid; grid-template-columns: 90px 1fr 70px; gap: 10px; align-items: center; font-size: 12px; }
+    .hbar { height: 10px; border-radius: 6px; background: linear-gradient(90deg, #4aa3ff, var(--orange)); }
+    .empty { padding: 20px; opacity: .6; font-size: 13px; }
+
     #status { font-size: 12px; color: #c0392b; word-break: break-all; padding: 0 4px; }
     #status:empty { display: none; }
   </style>
@@ -93,28 +128,40 @@
 <body>
   <div class="app">
     <aside class="side">
-      <div class="logo">⛅</div>
-      <i class="on">▣</i><i>✉</i><i>⌖</i><i>▦</i><i>☰</i><i>⚙</i>
+      <div class="logo" data-view="dash" title="홈">⛅</div>
+      <button data-view="dash" class="on" title="대시보드">▣</button>
+      <button data-view="all" title="전국 도시 비교">☰</button>
+      <button id="locBtn" title="내 위치 날씨">⌖</button>
+      <button data-view="hist" title="저장된 기록 (Supabase)">▦</button>
+      <button id="setBtn" title="설정">⚙</button>
       <div class="grow"></div>
-      <i>⇥</i>
+      <button id="refBtn" title="새로고침">↻</button>
+      <div class="settings" id="settings" hidden>
+        <b>온도 단위</b>
+        <div class="seg"><button data-unit="C" class="on">°C</button><button data-unit="F">°F</button></div>
+      </div>
     </aside>
 
     <main>
       <header>
         <div class="hello"><small>안녕하세요</small><b>기상청 실시간 날씨</b></div>
-        <div class="search">도시 검색…</div>
+        <div class="searchwrap">
+          <input id="q" type="search" placeholder="도시 검색 (예: 부산, 제주)" autocomplete="off">
+          <div class="results" id="results" hidden></div>
+        </div>
         <div class="dot">▦</div><div class="dot">✉</div><div class="dot">🔔</div>
       </header>
 
       <div id="status"></div>
 
+      <div class="view" id="view-dash">
       <section class="row1">
         <div class="card hero">
-          <span class="pill">📍 서울특별시</span>
+          <span class="pill">📍 <span id="cityName">서울</span></span>
           <h2>Weather</h2>
           <div class="now">Now · <span id="when">--</span></div>
           <div class="icon" id="heroIcon">⛅</div>
-          <div class="big"><span id="t">--</span>°C</div>
+          <div class="big"><span id="t">--</span><span class="u">°C</span></div>
           <div class="sub" id="state">불러오는 중…</div>
           <div class="chips">
             <div class="chip lime">풍속<b><span id="w">-</span> m/s</b></div>
@@ -125,7 +172,7 @@
         <div class="card scene">
           <div id="scene"></div>
           <div class="hint">드래그로 회전 · 휠로 확대</div>
-          <div class="tag"><span class="n"><span id="t2">--</span>°C</span><small><span id="day">-</span><br><span id="state2">-</span></small></div>
+          <div class="tag"><span class="n"><span id="t2">--</span><span class="u">°C</span></span><small><span id="day">-</span><br><span id="state2">-</span></small></div>
         </div>
       </section>
 
@@ -140,9 +187,9 @@
         </div>
 
         <div class="card metrics" style="background:#fff;padding:6px 6px 0">
-          <h3>오늘 서울의 날씨 지표</h3>
+          <h3>오늘 <span id="cityName2">서울</span>의 날씨 지표</h3>
           <div class="cols">
-            <div class="col"><div class="bubble">🌡️</div><b><span id="m1">-</span>°</b><span>기온</span></div>
+            <div class="col"><div class="bubble">🌡️</div><b><span id="m1">-</span><span class="u">°C</span></b><span>기온</span></div>
             <div class="col"><div class="bubble">💧</div><b><span id="m2">-</span>%</b><span>습도</span></div>
             <div class="col"><div class="bubble">🌬️</div><b><span id="m3">-</span></b><span>풍속 m/s</span></div>
             <div class="col"><div class="bubble">🧭</div><b><span id="m4">-</span>°</b><span>풍향</span></div>
@@ -151,11 +198,22 @@
 
         <div class="card tomorrow">
           <small>Today</small>
-          <h3>서울</h3>
+          <h3 id="cityName3">서울</h3>
           <div class="figure" id="figure">🌤️</div>
-          <div class="t2"><span id="t3">--</span>°C<small id="state3">-</small></div>
+          <div class="t2"><span id="t3">--</span><span class="u">°C</span><small id="state3">-</small></div>
         </div>
       </section>
+      </div>
+
+      <div class="view" id="view-all" hidden>
+        <h2>전국 주요 도시 날씨</h2>
+        <div class="allgrid" id="allgrid"></div>
+      </div>
+
+      <div class="view" id="view-hist" hidden>
+        <h2><span id="histCity">서울</span> · 저장된 관측 기록 (최근 24건)</h2>
+        <div class="hist" id="hist"></div>
+      </div>
     </main>
   </div>
 
@@ -314,45 +372,221 @@
     });
 
     // ---------- 데이터 ----------
-    const load = (c) =>
-      fetch(`/api/weather?nx=${c.nx}&ny=${c.ny}`).then((r) =>
-        r.json().then((d) => (r.ok ? d : Promise.reject([d.error, d.code, d.detail].filter(Boolean).join(' | ')))));
+    const CITY_LIST = [
+      { name: '서울', nx: 60, ny: 127 }, { name: '부산', nx: 98, ny: 76 }, { name: '대구', nx: 89, ny: 90 },
+      { name: '인천', nx: 55, ny: 124 }, { name: '광주', nx: 58, ny: 74 }, { name: '대전', nx: 67, ny: 100 },
+      { name: '울산', nx: 102, ny: 84 }, { name: '세종', nx: 66, ny: 103 }, { name: '수원', nx: 60, ny: 121 },
+      { name: '춘천', nx: 73, ny: 134 }, { name: '강릉', nx: 92, ny: 131 }, { name: '청주', nx: 69, ny: 107 },
+      { name: '전주', nx: 63, ny: 89 }, { name: '포항', nx: 102, ny: 94 }, { name: '창원', nx: 90, ny: 77 },
+      { name: '안동', nx: 91, ny: 106 }, { name: '목포', nx: 50, ny: 67 }, { name: '여수', nx: 73, ny: 66 },
+      { name: '제주', nx: 52, ny: 38 }, { name: '서귀포', nx: 52, ny: 33 },
+    ];
+    const QUICK = ['서울', '부산', '제주', '대구', '인천'];
+    const safe = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+    const save = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+
+    let unit = safe('unit') === 'F' ? 'F' : 'C';
+    let current = CITY_LIST.find((c) => c.name === safe('city')) ?? CITY_LIST[0];
+    const cache = new Map();
+
+    const load = (c) => {
+      const key = `${c.nx},${c.ny}`;
+      if (!cache.has(key)) {
+        cache.set(key, fetch(`/api/weather?nx=${c.nx}&ny=${c.ny}`).then((r) =>
+          r.json().then((d) => (r.ok ? d : Promise.reject([d.error, d.code, d.detail].filter(Boolean).join(' | '))))
+        ).catch((e) => { cache.delete(key); throw e; }));
+      }
+      return cache.get(key);
+    };
+    const fT = (c) => (c == null ? '-' : unit === 'F' ? Math.round((c * 9 / 5 + 32) * 10) / 10 : c);
+    const setUnitLabels = () => document.querySelectorAll('.u').forEach((el) => (el.textContent = '°' + unit));
 
     const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
     $('day').textContent = DAYS[new Date().getDay()] + '요일';
 
-    load(CITIES[0])
-      .then((d) => {
-        for (const k of Object.keys(state)) if (d[k] !== null && d[k] !== undefined) state[k] = d[k];
-        const label = PTY[d.precipitationType] ?? '-';
-        const ic = iconOf(d);
-        for (const id of ['t', 't2', 't3', 'm1']) $(id).textContent = d.temperature;
-        for (const id of ['h', 'h2', 'm2']) $(id).textContent = d.humidity;
-        for (const id of ['w', 'm3']) $(id).textContent = d.windSpeed;
-        $('m4').textContent = d.windDirection;
-        $('r').textContent = d.rain1h;
-        for (const id of ['state', 'state2', 'state3']) $(id).textContent = label;
-        for (const id of ['heroIcon', 'figure', 'humIcon']) $(id).textContent = ic;
-        $('when').textContent = `${d.baseDate.slice(4, 6)}/${d.baseDate.slice(6)} ${d.baseTime.slice(0, 2)}:00`;
-        if (!d.db?.saved) $('status').textContent = 'DB 미저장: ' + (d.db?.reason ?? '');
-        applyState();
-      })
-      .catch((e) => { $('status').textContent = '오류: ' + e; $('state').textContent = '데이터 없음'; });
+    let lastData = null;
+    function render(d) {
+      lastData = d;
+      for (const k of Object.keys(state)) if (d[k] !== null && d[k] !== undefined) state[k] = d[k];
+      const label = PTY[d.precipitationType] ?? '-';
+      const ic = iconOf(d);
+      for (const id of ['t', 't2', 't3', 'm1']) $(id).textContent = fT(d.temperature);
+      for (const id of ['h', 'h2', 'm2']) $(id).textContent = d.humidity;
+      for (const id of ['w', 'm3']) $(id).textContent = d.windSpeed;
+      $('m4').textContent = d.windDirection;
+      $('r').textContent = d.rain1h;
+      for (const id of ['state', 'state2', 'state3']) $(id).textContent = label;
+      for (const id of ['heroIcon', 'figure', 'humIcon']) $(id).textContent = ic;
+      $('when').textContent = `${d.baseDate.slice(4, 6)}/${d.baseDate.slice(6)} ${d.baseTime.slice(0, 2)}:00`;
+      $('status').textContent = d.db?.saved || d.db?.reason === 'Supabase 환경변수 없음' ? '' : 'DB 미저장: ' + (d.db?.reason ?? '');
+      applyState();
+    }
 
-    // 다른 도시 목록 (서울 제외)
-    CITIES.slice(1).forEach((c) => {
-      const el = document.createElement('div');
-      el.className = 'city';
-      el.innerHTML = `<span class="ic">…</span><span class="nm">${c.name}<small>불러오는 중</small></span><span class="tp"></span>`;
-      $('cities').appendChild(el);
+    function renderQuick() {
+      const box = $('cities');
+      box.innerHTML = '';
+      CITY_LIST.filter((c) => QUICK.includes(c.name) && c.name !== current.name).slice(0, 3).forEach((c) => {
+        const el = document.createElement('div');
+        el.className = 'city';
+        el.innerHTML = `<span class="ic">…</span><span class="nm">${c.name}<small>불러오는 중</small></span><span class="tp"></span>`;
+        el.onclick = () => selectCity(c);
+        box.appendChild(el);
+        fillCity(el, c);
+      });
+    }
+    function fillCity(el, c) {
       load(c)
         .then((d) => {
           el.querySelector('.ic').textContent = iconOf(d);
           el.querySelector('small').textContent = PTY[d.precipitationType];
-          el.querySelector('.tp').textContent = `${d.temperature}°C · ${d.humidity}%`;
+          el.querySelector('.tp').textContent = `${fT(d.temperature)}°${unit} · ${d.humidity}%`;
+          el.dataset.t = d.temperature; el.dataset.h = d.humidity;
         })
         .catch(() => { el.querySelector('.ic').textContent = '⚠️'; el.querySelector('small').textContent = '불러오기 실패'; });
+    }
+
+    function selectCity(c, { fromSearch = false } = {}) {
+      current = c;
+      if (CITY_LIST.some((x) => x.name === c.name)) save('city', c.name);
+      for (const id of ['cityName', 'cityName2', 'cityName3']) $(id).textContent = c.name;
+      $('histCity').textContent = c.name;
+      $('state').textContent = '불러오는 중…';
+      if (fromSearch) { $('q').value = ''; hideResults(); }
+      showView('dash');
+      renderQuick();
+      load(c).then(render).catch((e) => { $('status').textContent = '오류: ' + e; $('state').textContent = '데이터 없음'; });
+    }
+
+    // ---------- 검색 ----------
+    const results = $('results');
+    let hl = -1, shown = [];
+    function hideResults() { results.hidden = true; hl = -1; }
+    function showResults(list) {
+      shown = list;
+      hl = list.length ? 0 : -1;
+      results.innerHTML = list.length
+        ? list.map((c, i) => `<div data-i="${i}" class="${i === hl ? 'hl' : ''}">${c.name}<small>격자 ${c.nx},${c.ny}</small></div>`).join('')
+        : '<div style="cursor:default;opacity:.6">검색 결과가 없습니다</div>';
+      results.hidden = false;
+    }
+    const matches = (v) => CITY_LIST.filter((c) => c.name.includes(v.trim()));
+    $('q').addEventListener('input', (e) => (e.target.value.trim() ? showResults(matches(e.target.value)) : hideResults()));
+    $('q').addEventListener('focus', (e) => showResults(e.target.value.trim() ? matches(e.target.value) : CITY_LIST));
+    $('q').addEventListener('keydown', (e) => {
+      if (results.hidden) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        hl = (hl + (e.key === 'ArrowDown' ? 1 : -1) + shown.length) % (shown.length || 1);
+        [...results.children].forEach((el, i) => el.classList.toggle('hl', i === hl));
+      } else if (e.key === 'Enter' && shown[hl]) selectCity(shown[hl], { fromSearch: true });
+      else if (e.key === 'Escape') hideResults();
     });
+    results.addEventListener('mousedown', (e) => {
+      const el = e.target.closest('[data-i]');
+      if (el) selectCity(shown[el.dataset.i], { fromSearch: true });
+    });
+    $('q').addEventListener('blur', () => setTimeout(hideResults, 120));
+
+    // ---------- 사이드바 ----------
+    const views = ['dash', 'all', 'hist'];
+    function showView(v) {
+      views.forEach((n) => ($('view-' + n).hidden = n !== v));
+      document.querySelectorAll('.side button[data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
+      $('locBtn').classList.remove('on');
+      if (v === 'all') loadAll();
+      if (v === 'hist') loadHistory();
+    }
+    document.querySelectorAll('[data-view]').forEach((el) => el.addEventListener('click', () => showView(el.dataset.view)));
+
+    function loadAll() {
+      const g = $('allgrid');
+      if (g.children.length) {
+        [...g.children].forEach((el, i) => {
+          const t = el.dataset.t;
+          if (t) el.querySelector('.tp').textContent = `${fT(+t)}°${unit} · ${el.dataset.h}%`;
+        });
+        return;
+      }
+      CITY_LIST.forEach((c) => {
+        const el = document.createElement('div');
+        el.className = 'city';
+        el.innerHTML = `<span class="ic">…</span><span class="nm">${c.name}<small>불러오는 중</small></span><span class="tp"></span>`;
+        el.onclick = () => selectCity(c);
+        g.appendChild(el);
+        fillCity(el, c);
+      });
+    }
+
+    function loadHistory() {
+      const box = $('hist');
+      box.innerHTML = '<div class="empty">불러오는 중…</div>';
+      fetch(`/api/history?nx=${current.nx}&ny=${current.ny}`)
+        .then((r) => r.json().then((d) => (r.ok ? d : Promise.reject(d.error))))
+        .then((rows) => {
+          if (!rows.length) { box.innerHTML = '<div class="empty">저장된 기록이 없습니다. 도시를 선택하면 관측값이 저장됩니다.</div>'; return; }
+          box.innerHTML = rows.map((r) => {
+            const d = new Date(r.observed_at);
+            const w = Math.min(100, Math.max(6, ((r.temperature + 20) / 60) * 100));
+            return `<div class="hrow"><span>${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:00</span><div class="hbar" style="width:${w}%"></div><b>${fT(r.temperature)}°${unit}</b></div>`;
+          }).join('');
+        })
+        .catch((e) => { box.innerHTML = `<div class="empty">기록을 불러오지 못했습니다: ${e}</div>`; });
+    }
+
+    // 내 위치: 위경도 → 기상청 격자(LCC) 변환
+    function toGrid(lat, lon) {
+      const D = Math.PI / 180, re = 6371.00877 / 5, s1 = 30 * D, s2 = 60 * D, ol = 126 * D, oa = 38 * D;
+      let sn = Math.tan(Math.PI * 0.25 + s2 * 0.5) / Math.tan(Math.PI * 0.25 + s1 * 0.5);
+      sn = Math.log(Math.cos(s1) / Math.cos(s2)) / Math.log(sn);
+      let sf = Math.tan(Math.PI * 0.25 + s1 * 0.5);
+      sf = (Math.pow(sf, sn) * Math.cos(s1)) / sn;
+      let ro = Math.tan(Math.PI * 0.25 + oa * 0.5);
+      ro = (re * sf) / Math.pow(ro, sn);
+      let ra = Math.tan(Math.PI * 0.25 + lat * D * 0.5);
+      ra = (re * sf) / Math.pow(ra, sn);
+      let th = lon * D - ol;
+      if (th > Math.PI) th -= 2 * Math.PI;
+      if (th < -Math.PI) th += 2 * Math.PI;
+      th *= sn;
+      return { nx: Math.floor(ra * Math.sin(th) + 43 + 0.5), ny: Math.floor(ro - ra * Math.cos(th) + 136 + 0.5) };
+    }
+    $('locBtn').addEventListener('click', () => {
+      if (!navigator.geolocation) { $('status').textContent = '이 브라우저는 위치 기능을 지원하지 않습니다.'; return; }
+      $('status').textContent = '위치 확인 중…';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          $('status').textContent = '';
+          const g = toGrid(pos.coords.latitude, pos.coords.longitude);
+          selectCity({ name: '내 위치', ...g });
+          $('locBtn').classList.add('on');
+          document.querySelectorAll('.side button[data-view]').forEach((b) => b.classList.remove('on'));
+        },
+        () => { $('status').textContent = '위치 권한이 거부되었거나 확인할 수 없습니다. 브라우저 설정에서 허용해 주세요.'; }
+      );
+    });
+
+    // 설정: 온도 단위
+    $('setBtn').addEventListener('click', (e) => { e.stopPropagation(); $('settings').hidden = !$('settings').hidden; });
+    document.addEventListener('click', (e) => { if (!e.target.closest('#settings')) $('settings').hidden = true; });
+    document.querySelectorAll('[data-unit]').forEach((b) =>
+      b.addEventListener('click', () => {
+        unit = b.dataset.unit;
+        save('unit', unit);
+        document.querySelectorAll('[data-unit]').forEach((x) => x.classList.toggle('on', x === b));
+        setUnitLabels();
+        if (lastData) render(lastData);
+        renderQuick();
+        if (!$('view-all').hidden) loadAll();
+        if (!$('view-hist').hidden) loadHistory();
+      })
+    );
+    document.querySelectorAll('[data-unit]').forEach((x) => x.classList.toggle('on', x.dataset.unit === unit));
+
+    // 새로고침: 캐시 비우고 다시 불러오기
+    $('refBtn').addEventListener('click', () => { cache.clear(); $('allgrid').innerHTML = ''; selectCity(current); });
+
+    setUnitLabels();
+    selectCity(current);
   </script>
 </body>
 </html>
