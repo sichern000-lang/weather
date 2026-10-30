@@ -9,7 +9,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif; color: var(--navy);
       background: linear-gradient(135deg, #a9dde2 0%, #d5d8cf 55%, #f1d6c8 100%); background-attachment: fixed; }
-    .app { max-width: 1200px; margin: 24px auto; padding: 14px; background: #fff; border: 6px solid var(--navy); border-radius: 40px;
+    .app { max-width: 1200px; margin: 24px auto; padding: 14px; background: #fff; border-radius: 40px;
            display: grid; grid-template-columns: 76px 1fr; gap: 20px; }
     @media (max-width: 760px) { .app { margin: 0; border-radius: 0; border-width: 0; grid-template-columns: 1fr; } }
 
@@ -149,7 +149,6 @@
           <input id="q" type="search" placeholder="도시 검색 (예: 부산, 제주)" autocomplete="off">
           <div class="results" id="results" hidden></div>
         </div>
-        <div class="dot">▦</div><div class="dot">✉</div><div class="dot">🔔</div>
       </header>
 
       <div id="status"></div>
